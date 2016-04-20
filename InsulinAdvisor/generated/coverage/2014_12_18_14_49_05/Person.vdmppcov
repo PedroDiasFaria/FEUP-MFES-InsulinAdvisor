@@ -1,0 +1,149 @@
+class Person
+/*
+	Contains the core model and functions of insulinAdvisor.
+	Defines the state variables and operations available to the user.
+*/
+types
+
+public actionType = <EAT> | <INSULIN> | <NORMAL>;
+
+instance variables
+
+	public CURRENT_BG : rat := 80;
+	
+	public usualDose : rat;
+	inv usualDose > 0;
+	
+	public advisedDose : rat := 0;
+
+	public nextAction : actionType := <NORMAL>;
+	
+	public lastMealTime : nat := 0;
+	public fastingInterval : nat := 6; -- max interval without eating
+	public fasting : bool := false;
+
+	-- standard values
+	public maxFastingBG : nat := 130;
+	public maxBG : nat := 200;
+	public minBG : nat := 70;
+	public standardBG : nat := 100;
+
+operations
+
+	-- new Person constructor
+	public Person: rat ==> Person
+		Person(ud) == (
+		usualDose := ud; 
+		advisedDose := ud;
+		return self);
+
+-- getters and setters
+public getUsualDose: () ==> rat
+	getUsualDose() == return usualDose;
+	
+public getLastMeal: () ==> nat
+	getLastMeal() == return lastMealTime;
+	
+public setLastMeal: nat ==> ()
+	setLastMeal(time) == lastMealTime := time;
+	
+public setBG: rat ==> ()
+	setBG(BG) == CURRENT_BG := BG;
+	
+public setNextAction: actionType ==> ()
+	setNextAction(na) == nextAction := na;
+	
+public getNextAction: () ==> actionType
+	getNextAction() == return nextAction;
+
+-- receives the time of reading and calculates the feasting variable and sets next action accordingly
+-- returns the current glucose on blood
+public BGreading: nat ==> rat
+	BGreading(readingTime) == (
+	
+				if((readingTime - getLastMeal()) > fastingInterval) then(
+						fasting := true)
+					else (
+						fasting := false
+					);
+				
+				if((fasting and CURRENT_BG >= maxFastingBG) or (not fasting and CURRENT_BG >= maxBG)) then (
+					IO`println("BG over maximum, administrate insulin!");
+					setNextAction(<INSULIN>);
+				)
+				else if(CURRENT_BG <= minBG) then (
+						IO`println("BG under minimum, you must eat!");
+						 setNextAction(<EAT>);
+			 )
+			 else(
+			 	setNextAction(<NORMAL>);
+			 );
+					
+				return CURRENT_BG;
+	);		
+	
+-- receives the time of function call and calculates the recommended dose to administrate
+-- returns the recommended dose to administrate or an info message
+public calculateAdvice: nat ==> rat
+	calculateAdvice(advTime) == (
+		if((advTime - getLastMeal() > 1))
+			then (
+			IO`println("Can't advice, last meal was 1h+ ago");
+			return 0)
+		else(
+			if(CURRENT_BG < minBG) then (
+																		IO`println("Dont administrate - BG under minimum, you must eat!");
+																		setNextAction(<EAT>);
+																		return 0;
+																		)
+																		else if((CURRENT_BG >= minBG) and (CURRENT_BG <= standardBG))then(
+																		IO`println("Dont administrate - BG withing expected levels!");
+																		setNextAction(<NORMAL>);
+																		return 0;
+																		)
+																		else(
+																		advisedDose := ((CURRENT_BG-100)/10);
+																		return advisedDose;
+																		)
+			)
+			);
+	
+-- receives the time and dose of administration and sets currentBG and next action accordingly
+public administrateInsulin: nat * nat ==> ()
+	administrateInsulin(adminTime, dose) == (
+		setBG(CURRENT_BG - (dose * 10));	
+		
+		if(BGreading(adminTime) > 0) then (return;)	--refreshes person's state
+	)
+	pre (nextAction = <INSULIN> and (dose = usualDose or dose = advisedDose and advisedDose > 0));
+
+-- receives the time and the size of the meal and sets currentBG and next action accordingly
+-- mealSize: 0 - nothing, 1 - light, 2 - normal, 3 - large
+public eat: nat * nat ==> ()
+	eat(mealTime, mealSize) == (
+	
+	setBG((CURRENT_BG + (10 * mealSize)));
+	
+	if(CURRENT_BG > maxBG) then setNextAction(<INSULIN>);
+
+	if(mealSize > 0) then	setLastMeal(mealTime);	
+	
+	if(BGreading(mealTime) > 0) then (return;) --refreshes person's state
+	)
+	pre nextAction in set elems [ <EAT> , <NORMAL> ] ;
+
+-- receives the time and the level of the exercise and sets currentBG and next action accordingly
+-- exerciseLevel: 0 - none, 1 - minimal, 2 - normal, 3 - heavy
+public exercise: nat * nat ==> ()
+	exercise(exerciseTime, exerciseLevel) == (
+	
+			setBG((CURRENT_BG - (8 * exerciseLevel)));
+			
+			if(CURRENT_BG < minBG) then setNextAction(<EAT>);
+
+			if(BGreading(exerciseTime) > 0) then (return;)
+	)
+	pre nextAction = <NORMAL>;
+	
+
+end Person

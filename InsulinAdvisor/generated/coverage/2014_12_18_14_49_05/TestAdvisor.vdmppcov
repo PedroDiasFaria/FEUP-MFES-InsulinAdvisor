@@ -1,0 +1,146 @@
+class TestAdvisor is subclass of MyTestCase
+/*
+  Contains the test cases for the person.
+  Illustrates a scenario-based testing approach.
+  The test cases cover all usage scenarios as well as all states and transitions.
+*/
+
+
+operations
+
+-- run all the tests
+public testAll: () ==> ()
+	testAll() == (
+		IO`println("testCreatePerson");
+		testCreatePerson();
+		IO`println("testCreatePerson passed");
+		IO`println(" ");
+		IO`println("-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+");
+		IO`println("testEat");
+		testEat();
+		IO`println("testEat passed");
+		IO`println(" ");
+		IO`println("-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+");
+		IO`println("testExercise");
+		testExercise();
+		IO`println("testExercise passed");
+		IO`println(" ");
+		IO`println("-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+");
+		IO`println("testAdministrateAfterEat");
+		testAdministrateAfterEat();
+		IO`println("testAdministrateAfterEat passed");
+		IO`println(" ");
+		IO`println("-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+");
+		IO`println("testEatAfterExercise");
+		testEatAfterExercise();
+		IO`println("testEatAfterExercise passed");
+		IO`println("-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+");
+	
+		);
+
+-- test to verify if inicial values of the new instance of person are ok
+public testCreatePerson: () ==> ()
+	testCreatePerson() == (
+	
+	dcl p: Person := new Person(5);
+	
+	assertEqual(p.BGreading(1), 80);	
+	assertEqual(p.calculateAdvice(1) , 0);
+	assertEqual(p.getNextAction() , <NORMAL>);
+	
+	);
+
+-- tests to verify if person operations are working as expected 
+public testEat : () ==> ()
+	testEat() == (
+		dcl p1: Person := new Person(5);
+		dcl p2: Person := new Person(5);
+		
+		IO`println("p1: Eating: 1h, size 3");
+		p1.eat(1, 3);
+		IO`println("p1: Reading at 1h -> after eating");
+		assertEqual(p1.BGreading(1), 110);
+		IO`println("p1:Calculate advice at 2h ->");
+		assertEqual(p1.calculateAdvice(2), 1);
+		IO`println("p1:Calculate advice at 3h ->");
+		assertEqual(p1.calculateAdvice(3), 0);
+		
+		IO`println("p2: Eating: 1h, size 3");
+		p2.eat(1, 3);
+		IO`println("p2: Eating: 1h, size 3");
+		p2.eat(2, 3);
+		IO`println("p2: Reading at 2h -> after eating");
+		assertEqual(p2.BGreading(2), 140);
+		IO`println("p2:Calculate advice at 2h ->");
+		assertEqual(p2.calculateAdvice(2), 4);
+		IO`println("p2:Calculate advice at 3h -> Still reads");
+		assertEqual(p2.calculateAdvice(3), 4);
+		
+		IO`println("p2: Eating: 3h, size 3");
+		p2.eat(3, 3);
+		IO`println("p2: Eating: 4h, size 3");
+		p2.eat(4, 3);
+		IO`println("p2: BG at 4h, after 4 meals");
+		assertEqual(p2.BGreading(4), 200);
+		IO`println("p2:Calculate advice at 4h -> Needs Insulin");
+		assertEqual(p2.calculateAdvice(4), 10);
+		
+	);
+	
+public testExercise : () ==> ()
+	testExercise() == (
+		dcl p1: Person := new Person(5);
+		dcl p2: Person := new Person(5);
+		
+		IO`println("p1: Exercise: 1h, level 3");
+		p1.exercise(1, 3);
+		IO`println("p1: Reading at 1h -> ");
+		assertEqual(p1.BGreading(1), 56);
+			
+		
+		IO`println("Exercise: 1h, level 1");
+		p2.exercise(1, 1);
+		IO`println("p2: Reading at 1h -> ");
+		assertEqual(p2.BGreading(1), 72);
+		
+);
+
+public testAdministrateAfterEat : () ==> ()
+	testAdministrateAfterEat() == (
+	dcl p: Person := new Person(5);
+		IO`println("p: Eating: 1h, size 3");
+		p.eat(1, 3);
+		IO`println("p: Eating: 1h, size 3");
+		p.eat(2, 3);
+		IO`println("p: Eating: 3h, size 3");
+		p.eat(3, 3);
+		IO`println("p: Eating: 4h, size 3");
+		p.eat(4, 3);
+		IO`println("p: BG at 4h, after 4 meals");
+		assertEqual(p.BGreading(4), 200);
+		IO`println("p:Calculate advice at 4h -> Needs Insulin");
+		assertEqual(p.calculateAdvice(4), 10);
+		IO`println("p:Administrate at 4h advised amount");
+		p.administrateInsulin(4, 10);
+		IO`println("p:State after administrate is NORMAL");
+		assertEqual(p.getNextAction(), <NORMAL>);
+);
+
+public testEatAfterExercise : () ==> ()
+	testEatAfterExercise() == (
+	dcl p: Person := new Person(5);
+	
+		IO`println("p: Exercise: 1h, level 3");
+		p.exercise(1, 3);
+		IO`println("p: Reading at 1h -> ");
+		assertEqual(p.BGreading(1), 56);
+		
+		IO`println("p: Eating: 2h, size 3 -> Still under");
+		p.eat(2, 1);
+		assertEqual(p.getNextAction(), <EAT>);
+		IO`println("p: Eating: 3h, size 3 -> OK");
+		p.eat(3, 3);
+		assertEqual(p.getNextAction(), <NORMAL>);
+);
+
+end TestAdvisor
